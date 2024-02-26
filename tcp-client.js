@@ -2,8 +2,6 @@
 
 module.exports = function (RED) {
 
-    //https://github.com/node-red/node-red/blob/master/packages/node_modules/%40node-red/nodes/core/network/31-tcpin.js
-
     var socketTimeout = RED.settings.socketTimeout||null;
 
     function TcpClient(config) {
@@ -183,8 +181,12 @@ module.exports = function (RED) {
                 else if (node.port != null) {
 
                     if (node.debug === 'all') node.warn(`Closing connection to ${node.host}:${node.port}`);
-
-                    //TODO
+                    let socket = connectionPool[id].socket;
+                    // Properly close the socket
+                    socket.end(() => {
+                        if (node.debug === 'all') node.warn(`Successfully closed connection to ${node.host}:${node.port}`);
+                    });
+                    socket.destroy(); // Ensures the connection is fully closed
 
                 }
               
@@ -194,7 +196,7 @@ module.exports = function (RED) {
                 
                 if (typeof connectionPool[id] === 'undefined') {
 
-                    if (node.host == null) {
+                if (node.host == null) {
 
                         if (typeof server === 'undefined') {
     

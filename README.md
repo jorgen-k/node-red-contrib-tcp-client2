@@ -6,13 +6,11 @@
 
 This node is a **TCP client** that listens for connections on specific port or connects to a specified host.
 
-Unlike the default node-red tcp-in node, this one allows you to create dynamic TCP connections passed as arguments.
+Unlike the default node-red tcp-in node, this one allows you to create dynamic TCP connections passed as arguments. Yo start listening on defined port via "listen". Close the port with "close" and write on teh port with "write".
 
-Allows stopping the connection by passing a "close" argument:
+
 
 ![node configuration](https://raw.githubusercontent.com/tiagordc/node-red-contrib-tcp-client/master/flow.png)
-
-This project was developed specifically for XML over TCP with some parsing options but other formats should still be supported.
 
 To report an issue use the project [GitHub](https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues) page
 

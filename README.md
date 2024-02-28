@@ -21,11 +21,13 @@ Example usage scenarios:
 3. Building custom TCP-based protocols within Node-RED flows.
 
 ## Configuration:
-![Node Configuration](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client/master/edit.png)
+![Node Configuration](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/edit.png)
 
 ## Example:
-![Example](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client/master/flow.png)
-'''[
+![Example](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/flow.png)
+
+```
+[
     {
         "id": "b1713ea4ac56132b",
         "type": "inject",
@@ -128,7 +130,8 @@ Example usage scenarios:
             ]
         ]
     }
-]'''
+]
+```
 
 ## Installation:
 You can install this package either by using `npm install node-red-contrib-tcp-client --save` in ~./node-red or through the Palette Manager in Node-RED.

@@ -32,10 +32,10 @@ Upon successful installation, you should find the new TCP client node under the 
 - Node-RED
 
 ## Contributing
-Contributions to this project are welcome! Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
+Contributions to this project are welcome! Please refer to the [CONTRIBUTING.md](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/CONTRIBUTING.md) file for guidelines.
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/LICENSE).
 
 ## Credits
 - Author: Jörgen Karlsson inspired by Tiago Costa
@@ -43,19 +43,19 @@ This project is licensed under the [MIT License](LICENSE).
 - Contributors: jorgen-k
 
 ## Changelog
-Refer to the [CHANGELOG.md](CHANGELOG.md) file for details on changes, updates, and bug fixes.
+Refer to the [CHANGELOG.md](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/CHANGELOG.md) file for details on changes, updates, and bug fixes.
 
 ## Support
 For any issues or questions related to using the TCP client node, please visit the project's [GitHub Issues](https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues) page.
 
 ## Examples
-For additional examples and usage scenarios, refer to the [EXAMPLES.md](EXAMPLES.md) file.
+For additional examples and usage scenarios, refer to the [EXAMPLES.md](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/EXAMPLES.md) file.
 
 ## Testing
-Testing procedures and frameworks used for this project are documented in the [TESTING.md](TESTING.md) file.
+Testing procedures and frameworks used for this project are documented in the [TESTING.md](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/TESTING.md) file.
 
 ## Security
-For best practices on securing Node-RED flows and using the TCP client node securely, please refer to the [SECURITY.md](SECURITY.md) file.
+For best practices on securing Node-RED flows and using the TCP client node securely, please refer to the [SECURITY.md](https://raw.githubusercontent.com/jorgen-k/node-red-contrib-tcp-client2/master/SECURITY.md) file.
 
 ## Feedback
 We welcome your feedback, suggestions, and bug reports! Please feel free to open an issue on the project's [GitHub Issues](https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues) page.

@@ -1,206 +1,117 @@
 'use strict';
 
 module.exports = function (RED) {
+    const net = require('net');
 
-    var socketTimeout = RED.settings.socketTimeout||null;
+    class TcpClient {
+        constructor(config) {
+            RED.nodes.createNode(this, config);
+            var node = this;
 
-    function TcpClient(config) {
+            node.host = config.host || 'localhost';
+            node.port = config.port || 80;
+            node.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
+            node.socketTimeout = RED.settings.socketTimeout || 120000;
+            node.retries = 0;
+            node.MAX_RETRIES = 5;
+            node.RETRY_DELAY = 3000;
+            node.connection = null;
 
-        var net = require('net'); //https://nodejs.org/api/net.html
-        var crypto = require('crypto');
+            node.on('input', (msg, send, done) => {
+                let action = RED.util.evaluateNodeProperty(config.action, config.actionType, this, msg) || this.action;
+                let host = RED.util.evaluateNodeProperty(config.host, config.hostType, this, msg) || this.host;
+                let port = RED.util.evaluateNodeProperty(config.port, config.portType, this, msg) * 1 || this.port;
 
-        RED.nodes.createNode(this, config);
-
-        this.action = config.action || "listen"; /* listen,close,write */
-        this.host = config.host || null;
-        this.port = config.port * 1;
-        this.topic = config.topic;
-        this.debug = config.debug;
-        this.stream = (!config.datamode || config.datamode=='stream'); /* stream,single*/
-        this.datatype = config.datatype || 'buffer'; /* buffer,utf8,base64 */
-        this.newline = (config.newline || "").replace("\\n","\n").replace("\\r","\r");
-
-        var node = this;
-
-        var connectionPool = {};
-        var server;
-
-        node.on('input', function (msg, nodeSend, nodeDone) {
-
-            if (config.actionType === 'msg' || config.actionType === 'flow' || config.actionType === 'global') {
-                node.action = RED.util.evaluateNodeProperty(config.action, config.actionType, this, msg);
-            }
-
-            if (config.hostType === 'msg' || config.hostType === 'flow' || config.hostType === 'global') {
-                node.host = RED.util.evaluateNodeProperty(config.host, config.hostType, this, msg);
-            }
-
-            if (config.portType === 'msg' || config.portType === 'flow' || config.portType === 'global') {
-                node.port = (RED.util.evaluateNodeProperty(config.port, config.portType, this, msg)) * 1;
-            }
-
-            var id = crypto.createHash('md5').update(`${node.host}${node.port}`).digest("hex");
-
-            var configure = (id) => {
-
-                var socket = connectionPool[id].socket;
-
-                socket.setKeepAlive(true, 120000);
-
-                if (socketTimeout !== null) {
-                    socket.setTimeout(socketTimeout);
+                switch (action) {
+                    case 'connect':
+                    case 'listen': // legacy
+                        this.connect(host, port, msg, done);
+                        break;
+                    case 'write':
+                        this.write(msg.payload, done);
+                        break;
+                    case 'close':
+                        this.close(done);
+                        break;
+                    default:
+                        this.warn(`Unrecognized action: ${action}`);
+                        done();
                 }
+            });
 
-                socket.on('data', (data) => {
-
-                    if (node.debug === 'all') node.warn(`Data received from ${socket.remoteAddress}:${socket.remotePort}`);
-
-                    if (node.datatype != 'buffer') {
-                        data = data.toString(node.datatype);
-                    }
-    
-                    var buffer = connectionPool[id].buffer;
-    
-                    if (node.stream) {
-    
-                        var result = {
-                            topic: msg.topic || config.topic
-                        };
-    
-                        if ((typeof data) === "string" && node.newline !== "") {
-    
-                            buffer = buffer + data;
-                            var parts = buffer.split(node.newline);
-    
-                            for (var i = 0; i < parts.length - 1; i += 1) {
-                                
-                                result.payload = parts[i];
-                                nodeSend(result);
-    
-                            }
-    
-                            buffer = parts[parts.length - 1];
-    
-                        }
-                        else {
-                            result.payload = data;
-                            nodeSend(result);
-                        }
-    
-                    }
-                    else {
-    
-                        if ((typeof data) === "string") {
-                            buffer = buffer + data;
-                        }
-                        else {
-                            buffer = Buffer.concat([buffer, data], buffer.length + data.length);
-                        }
-    
-                    }
-    
-                    connectionPool[id].buffer = buffer;
-
-                });
-
-                socket.on('end', function () {
-                    if (!node.stream || (node.datatype === "utf8" && node.newline !== "")) {
-                        var buffer = connectionPool[id].buffer;
-                        if (buffer.length > 0) nodeSend({ topic: msg.topic || config.topic, payload: buffer });
-                        connectionPool[id].buffer = null;
-                    }
-                });
-
-                socket.on('timeout', function () {
-                    socket.end();
-                });
-
-                socket.on('close', function () {
-                    delete connectionPool[id];
-                });
-
-                socket.on('error', function (err) {
-                    node.log(err);
-                });
-
-            };
-
-            var close = function() {
-
-                if (node.debug === 'all') node.warn(`Closing connection to ${node.host}:${node.port}`);
-                let socket = connectionPool[id].socket;
-                // Properly close the socket
-                socket.end(() => {
-                    if (node.debug === 'all') node.warn(`Successfully closed connection to ${node.host}:${node.port}`);
-                });
-                socket.destroy(); // Ensures the connection is fully closed
-            };
-
-            var listen = function() {
-                
-                if (typeof connectionPool[id] === 'undefined') {
-
-                        connectionPool[id] = {
-                            socket: net.connect(node.port, node.host),
-                            buffer: (node.datatype == 'buffer') ? Buffer.alloc(0) : ""
-                        };
-                        configure(id);
-                    }
-            };
-
-            var write = function() {
-                if (connectionPool[id] == null) return;
-                var socket = connectionPool[id].socket;
-                var writeMsg = config.write;
-
-                if (config.writeType === 'msg' || config.writeType === 'flow' || config.writeType === 'global') {
-                    writeMsg = RED.util.evaluateNodeProperty(config.write, config.writeType, this, msg);
-                }
-
-                if (writeMsg == null) return;
-
-                if (Buffer.isBuffer(writeMsg)) {
-                    socket.write(writeMsg);
-                } else if (typeof writeMsg === "string" && node.datatype == 'base64') {
-                    socket.write(Buffer.from(writeMsg, 'base64'));
-                } else {
-                    socket.write(Buffer.from("" + writeMsg));
-                }
-
-            };
-            if (node.debug === 'all') node.warn(`Action:  ${node.action}`);
-            switch (node.action.toLowerCase()) {
-                case 'close':
-                    close();
-                    break;
-                case 'write':
-                    write();
-                    break;
-                default:
-                    listen();
+            this.on('close', (done) => {
+                // nothing to do
+            });
+        }
+        connect(host, port, msg, done) {
+            if (this.connection !== null) {
+                this.warn(`Connection already exists`);
+                done(); // todo CLOSE!
+                return;
             }
+            this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${host}:${port}` });
+            let socket = net.createConnection({ host, port }, () => {
+                this.log(`Connected to ${host}:${port}`);
+                this.connection = { socket, buffer: '', retries: 0 };
+                this.status({ fill: "green", shape: "dot", text: `Connected to ${host}:${port}` });
+                done();
+            });
 
-        });
-
-        node.on("close",function() {
-
-            for (var c in connectionPool) {
-                if (connectionPool.hasOwnProperty(c)) {
-                    var socket = connectionPool[c].socket;
-                    socket.end();
-                    socket.destroy();
-                    socket.unref();
+            socket.on('data', (data) => {
+                let msg = { payload: data };
+                if (this.datatype === 'utf8') {
+                    msg.payload = data.toString('utf8');
                 }
+                this.send(msg);
+            });
+
+            socket.on('close', () => {
+                this.log(`Connection to ${host}:${port} closed`);
+                this.connection = null;
+                //this.status({ fill: "red", shape: "ring", text: "disconnected" });
+            });
+
+            socket.on('error', (err) => {
+                this.error(`Error on connection to ${host}:${port}: ${err.message}`);
+                this.connection = null;
+                this.retryConnection(host, port, done);
+            });
+        }
+        write(data, done) {
+            if (!this.connection || !this.connection.socket) {
+                this.warn(`No connection available. Attempting to send data failed.`);
+            } else {
+                this.connection.socket.write(data, this.datatype, done);
             }
-
-            server.close();
-            connectionPool = {};
-            node.status({});
-
-        });
-
-    };
-
+            done();
+        }
+        close(done) {
+            if (this.connection && this.connection.socket) {
+                this.connection.socket.end(() => {
+                    this.log(`Connection closed.`);
+                    this.status({ fill: "blue", shape: "ring", text: "closed" });
+                });
+            }
+            done();
+        }
+        retryConnection(host, port, done) {
+            if (this.retries < this.MAX_RETRIES) {
+                setTimeout(() => {
+                    this.retries++;
+                    this.log(`Retry ${this.retries}/${this.MAX_RETRIES} for ${host}:${port}`);
+                    this.connect(host, port, {}, done);
+                }, this.RETRY_DELAY);
+            } else {
+                this.error(`Maximum retries reached for ${host}:${port}. Giving up.`);
+                this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${host}:${port}.` });
+                this.retries = 0; // Reset retries for future attempts
+                done();
+            }
+        }
+        log(data) {
+            // todo check log level
+            this.warn(data);
+        }
+    }
     RED.nodes.registerType("tcp-client", TcpClient);
-
 };

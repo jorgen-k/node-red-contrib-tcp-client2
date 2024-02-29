@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. This projec
 ## [Unreleased]
 ### Changed
 - Improved documentation
+- Improved fault handling
+- Major refactoring - simplification and modernization 
+- Node status
+- To connect the "connect" keyword shall be used. "listen" still supported but depricated.
+- Removed connection pool (did not work anyway so backwards compatible). Now one node supports one connection at a time.
 
 ## [1.0.0] - 2024-02-28
 ### Added
@@ -20,5 +25,5 @@ should be a separate node)
 - Removed support for the client to be a server. This might be implemented in a separate server node in the future. Also due to separation of concerns.
 
 ### Fixed
-- Major refactoring and simplification of code inspired from node-red-contrib-tcp-client, fixing closing issues and more.
+- Refactoring and simplification of code inspired from node-red-contrib-tcp-client, fixing closing issues and more.
 

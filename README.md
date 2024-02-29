@@ -12,13 +12,14 @@ The TCP client node allows seamless integration of TCP connections within Node-R
 ## Features
 - Establish TCP connections with designated hosts.
 - Dynamically manage connections using provided arguments.
-- Transmit data over TCP ports with ease.
+- Receive data from hosts and ports with ease.
 
 ## Usage
 Example usage scenarios:
 1. Monitoring data from remote sensors over TCP/IP.
 2. Integrating with external systems via TCP communication.
-3. Building custom TCP-based protocols within Node-RED flows.
+3. Listening on tcp port streams.
+4. Building custom TCP-based protocols within Node-RED flows.
 
 ## Installation:
 You can install this package either by using `npm install node-red-contrib-tcp-client --save` in ~./node-red or through the Palette Manager in Node-RED.

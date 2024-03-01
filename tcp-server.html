@@ -1,77 +1,170 @@
 <script type="text/x-red" data-template-name="tcp-server">
-    <div class="form-row">
-        <label for="node-input-port"><i class="icon-random"></i> Port</label>
-        <input type="text" id="node-input-port" placeholder="Port">
-    </div>
-    
-    <div class="form-row">
-        <label for="node-input-datamode"><i class="fa fa-exchange"></i> Data Mode</label>
-        <select id="node-input-datamode" style="width:150px;">
-            <option value="stream">Stream</option>
-            <option value="single">Single messages</option>
-        </select>
-    </div>
-    
-    <div class="form-row">
-        <label for="node-input-datatype"><i class="fa fa-code"></i> Data Type</label>
-        <select id="node-input-datatype" style="width:150px;">
-            <option value="buffer">Buffer</option>
-            <option value="utf8">UTF-8 string</option>
-            <option value="base64">Base64 string</option>
-        </select>
-    </div>
-    
-    <div class="form-row" id="node-row-newline" style="display:none;">
-        <label for="node-input-newline"><i class="fa fa-ellipsis-h"></i> Delimiter</label>
-        <input type="text" id="node-input-newline" placeholder="\\n" style="width:150px;">
-        <span style="margin-left: 10px; font-size: smaller;">(for stream mode)</span>
-    </div>
 
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
+       <label for="node-input-action"><i class="fa fa-tag"></i> Action</label>
+       <input type="text" id="node-input-action" style="width:70%;">
+       <span style="display: block; padding-left: 106px; color: gray; font-size: x-small;">Available actions: open, close and write</span>
+       <input type="hidden" id="node-input-actionType">
+   </div> 
+
+   <div class="form-row">
+       <label for="node-input-port"><i class="fa fa-globe"></i> Port</label>
+       <input type="text" id="node-input-port" style="width:70%;" />
+       <span style="display: block; padding-left: 106px; color: gray; font-size: x-small;">Host port</span>
+       <input type="hidden" id="node-input-portType">
+   </div>
+
+     <div class="form-row">
+       <label><i class="fa fa-sign-out"></i> Output</label>
+       <select id="node-input-datamode" style="width:110px;">
+           <option value="stream">stream of</option>
+           <option value="single">single</option>
+       </select>
+       <select id="node-input-datatype" style="width:140px;">
+           <option value="buffer">Buffer</option>
+           <option value="utf8">String</option>
+           <option value="base64">Base64 String</option>
+       </select>
+       payload(s)
+   </div>
+
+   <div id="node-row-newline" class="form-row hidden" style="padding-left:110px;">
+       <span id="node-span-delimit">delimited by </span>
+       <input type="text" id="node-input-newline">
+   </div>
+
+   <div class="form-row">
+       <label for="node-input-write"><i class="fa fa-pencil"></i> Write</label>
+       <input type="text" id="node-input-write" style="width:70%;" />
+       <input type="hidden" id="node-input-writeType">
+   </div>
+
+   <hr/>
+
+   <div class="form-row">
+       <label for="node-input-topic"><i class="fa fa-tags"></i> Topic</label>
+       <input type="text" id="node-input-topic" placeholder="" style="width: 70%;">
+   </div>
+
+   <div class="form-row">
+       <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+       <input type="text" id="node-input-name" placeholder="" style="width: 70%;">
+   </div>
+
+   <div class="form-row">
+       <label for="node-input-name"><i class="fa fa-bug"></i> Log-level</label>
+       <select id="node-input-debug" style="width:110px;">
+           <option value="error">Errors only</option>
+           <option value="warning">Warnings and errors</option>
+           <option value="info">Information, warnings and errors</option>
+           <option value="debug">Debug</option>
+       </select>
+   </div>
+
 </script>
 
 <script type="text/x-red" data-help-name="tcp-server">
-    <p>A TCP server node that listens on the specified port for incoming TCP connections.</p>
-    <p>The node can be configured to handle data as a continuous stream or as single messages separated by a specified delimiter.</p>
-    <p>Configuration options:</p>
-    <ul>
-        <li><b>Port</b> - The port number on which the server will listen for incoming connections.</li>
-        <li><b>Data Mode</b> - Whether to treat incoming data as a continuous stream or as discrete messages.</li>
-        <li><b>Data Type</b> - The format in which incoming data should be processed (Buffer, UTF-8 string, or Base64 string).</li>
-        <li><b>Delimiter</b> - The delimiter used to separate messages in stream mode (e.g., newline character).</li>
-    </ul>
+   
+   <p>TCP server</p>
+
+   <h3>Inputs</h3>
+   <dl class="message-properties">
+       <dt>action<span class="property-type">connect | close | write</span></dt>
+       <dd> the action to perform </dd>
+       <dt>host<span class="property-type">string</span></dt>
+       <dd> the optional server to connect to </dd>
+       <dt>port<span class="property-type">number</span></dt>
+       <dd> the port to accept incoming connections or the server port </dd>
+       <dt>output</dt>
+       <dd> output settings for the payload </dd>
+       <dt>write<span class="property-type">string</span></dt>
+       <dd> message or property to write to socket </dd>
+       <dt class="optional">topic <span class="property-type">string</span></dt>
+       <dd> the topic to publish to </dd>
+       <dt class="optional">name <span class="property-type">string</span></dt>
+       <dd> the name for this node </dd>
+       <dt class="optional">debug</dt>
+       <dd> level of debug messages to show </dd>
+   </dl>
+
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('tcp-server', {
-        category: 'network',
-        color: '#cc66ff',
-        defaults: {
-            port: {value: "80", required: true},
-            datamode: {value: "stream"},
-            datatype: {value: "buffer"},
-            newline: {value: "\\n"},
-            name: {value: ""}
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: "bridge-dash.svg",
-        label: function() {
-            return this.name || "tcp-server";
-        },
-        oneditprepare: function() {
-            function updateNewlineVisibility() {
-                if ($("#node-input-datamode").val() === "stream") {
-                    $("#node-row-newline").show();
-                } else {
-                    $("#node-row-newline").hide();
-                }
-            }
-            $("#node-input-datamode").on("change", updateNewlineVisibility);
-            updateNewlineVisibility();
-        }
-    });
+
+   RED.nodes.registerType('tcp-server', {
+       category: 'network',
+       color: '#cc66ff',
+       defaults: {
+
+           action: { value: "action", required: true, validate: RED.validators.typedInput("actionType") },
+           actionType: { value: "msg" },
+           port: { value: "port", required: true, validate: RED.validators.typedInput("portType") },
+           portType: { value: "msg" },
+           
+           datamode: { value: "stream" },
+           datatype: { value: "utf8" },
+           newline: { value: "x\n" },
+
+           write: { value: "payload", required: false, validate: RED.validators.typedInput("writeType") },
+           writeType: { value: "msg" },
+
+           topic: { value: "" },
+           name: { value: "" },
+           debug: { value: "warning" }
+       },
+       inputs: 1,
+       outputs: 1,
+       icon: "bridge-dash.svg",
+       label: function () {
+           return this.name || "tcp-server";
+       },
+       oneditprepare: function () {
+           var updateOptions = function() {
+               var datamode = $("#node-input-datamode").val();
+               var datatype = $("#node-input-datatype").val();
+
+               if (datamode == "stream") {
+                   if (datatype == "utf8" ) {
+                       $("#node-row-newline").show();
+                   } 
+                   else {
+                       $("#node-row-newline").hide();
+                   }
+               } 
+               else {
+                   $("#node-row-newline").hide();
+               }
+
+               $("#node-span-delimit").text("delimited by ");
+           };
+
+           updateOptions();
+
+           $("#node-input-datatype").change(updateOptions);
+           $("#node-input-datamode").change(updateOptions);
+
+           $("#node-input-actionType").val(this.actionType);
+           $("#node-input-action").typedInput({ 
+               typeField: $("#node-input-actionType"),
+               types: ['str', 'msg', 'flow', 'global', 'env'] 
+           });
+
+           $("#node-input-portType").val(this.portType);
+           $("#node-input-port").typedInput({ 
+               default: 'str', 
+               typeField: $("#node-input-portType"),
+               types: ['str', 'msg', 'flow', 'global', 'env'] 
+           });
+
+           $("#node-input-writeType").val(this.writeType);
+           $("#node-input-write").typedInput({ 
+               default: 'str', 
+               typeField: $("#node-input-writeType"),
+               types: ['str', 'msg', 'flow', 'global', 'env'] 
+           });
+           
+       }
+   }); 
+
+
 </script>

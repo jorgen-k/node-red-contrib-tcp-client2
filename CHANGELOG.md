@@ -4,8 +4,10 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [Unreleased]
 ### Added
+- TCP server node
 - Node status
 - Timeout and retries
+- Improved logging
 
 ### Changed
 - Improved documentation

@@ -12,9 +12,15 @@ module.exports = function (RED) {
             this.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
             this.socketTimeout = RED.settings.socketTimeout || 120000;
             this.retries = 0;
-            this.MAX_RETRIES = 5;
-            this.RETRY_DELAY = 3000;
+            this.maxRetries = parseInt(config.maxRetries, 10) || 5;
+            this.retryDelay = parseInt(config.retryDelay, 10) || 3000; // Fixed typo from 'retryDaley' to 'retryDelay'
+            
+            if (config.indefiniteRetries) {
+                this.maxRetries = Number.MAX_SAFE_INTEGER; // Use MAX_SAFE_INTEGER for practical "indefinite" value
+            }
+            this.logger.debug("Max retries " + this.maxRetries + ", delay " + this.retryDelay + "ms");
             this.connection = null;
+            this.done = null;
             this.logger.info("Init");
 
             this.on('input', (msg, send, done) => {
@@ -42,26 +48,34 @@ module.exports = function (RED) {
             });
 
             this.on('close', (done) => {
-                this.connection = null;
+                this.close(done);
             });
         }
 
+        doDone(){
+            if (this.done && typeof this.done === 'function') {
+                this.done(); // Call 'done' to complete the node operation
+                this.done = null;
+            }
+        }
+
         connect(host, port, msg, done) {
+            this.done = done;
             if (this.connection !== null) {
                 this.logger.warning(`Connection already exists`);
-                done(); // todo close!?
+                this.doDone(); // todo close!?
                 return;
             }
-            this.connection = { buffer: '', retries: 0, host: host, port: port }
-            this.doConnect(this.connection, msg, done);
+            this.connection = { buffer: '', host: host, port: port }
+            this._doConnect(this.connection, msg);
         } 
 
-        doConnect(connection, msg, done) {
-            this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${this.connection.host}:${this.connection.port}` });
+        _doConnect(connection, msg) {
+            this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${connection.host}:${connection.port}` });
             connection.socket = net.createConnection(connection.port, connection.host , () => {
                 this.logger.info(`Connected to ${connection.host}:${connection.port}`);
                 this.status({ fill: "green", shape: "dot", text: `Connected to ${connection.host}:${connection.port}` });
-                done();
+                this.doDone();
             });
 
             connection.socket.on('data', (data) => {
@@ -76,50 +90,58 @@ module.exports = function (RED) {
             });
 
             connection.socket.on('close', () => {
-                this.logger.info(`Connection closed`);
-                this.connection = null;
+                this.logger.info(`Socket closed`);
             });
 
             connection.socket.on('error', (err) => {
-                this.logger.info(`Error on connection to ${this.connection.host}:${this.connection.port}: ${err.message}`);
-                this.connection = null;
-                this.retryConnection(this.connection, done);
+                if (this.connection) {
+                    this.logger.info(`Error connecting to ${this.connection.host}:${this.connection.port}: ${err.message}`);
+                    this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
+                    this._retryConnection(this.connection);
+                } else {
+                    this.logger.info("Socket error: " + err.message);
+                    // connection gone, probably due to close so we bail out
+                    this.status({ fill: "blue", shape: "ring", text: "closed" });
+                }
             });
         }
 
         write(data, done) {
+            this.done = done;
             if (!this.connection || !this.connection.socket) {
                 this.logger.warning(`No connection available. Attempting to send data failed.`);
             } else {
                 this.logger.debug("Writing " + data);
                 this.connection.socket.write(data, this.datatype, done);
             }
-            done();
+            this.doDone();
         }
 
         close(done) {
+            this.done = done;
             if (this.connection && this.connection.socket) {
                 this.connection.socket.end(() => {
                     this.logger.info(`Connection closed.`);
                 });
             }
             this.connection = null;
+            this.retries = 0; 
             this.status({ fill: "blue", shape: "ring", text: "closed" });
-            done();
+            this.doDone();
         }
-        retryConnection(connection, done) {
+
+        _retryConnection(connection) {
             if (connection) {
-                if (this.retries < this.MAX_RETRIES) {
+                if (this.retries < this.maxRetries) {
                     setTimeout(() => {
-                        connection.retries++;
-                        this.logger.debug(`Retry ${connection.retries}/${this.MAX_RETRIES} for ${connection.host}:${connection.port}`);
-                        this.doConnect({}, done);
-                    }, this.RETRY_DELAY);
+                        this.retries++;
+                        this.logger.debug(`Retry ${this.retries}/${this.maxRetries} for ${connection.host}:${connection.port}`);
+                        this._doConnect(connection);
+                    }, this.retryDelay);
                 } else {
                     this.logger.error(`Maximum retries reached for ${connection.host}:${connection.port}. Giving up.`);
                     this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${connection.host}:${connection.port}.` });
-                    this.retries = 0; // Reset retries for future attempts
-                    done();
+                    this.close(this.done);
                 }
             }
         }

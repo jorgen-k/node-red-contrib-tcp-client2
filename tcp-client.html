@@ -7,10 +7,6 @@
         <input type="hidden" id="node-input-actionType">
     </div> 
 
-    <hr/>
-
-    <div class="form-row">Connection details:</div>
-
     <div class="form-row">
         <label for="node-input-host"><i class="fa fa-folder"></i> Host</label>
         <input type="text" id="node-input-host" style="width:70%;" />
@@ -24,10 +20,6 @@
         <span style="display: block; padding-left: 106px; color: gray; font-size: x-small;">Host port</span>
         <input type="hidden" id="node-input-portType">
     </div>
-
-    <hr/>
-
-    <div class="form-row">After <b>connect</b>:</div>
 
     <div class="form-row">
         <label><i class="fa fa-sign-out"></i> Output</label>
@@ -48,15 +40,23 @@
         <input type="text" id="node-input-newline">
     </div>
 
-    <hr/>
-
-    <div class="form-row">On <b>write</b>:</div>
-
     <div class="form-row">
-        <label for="node-input-write"><i class="fa fa-pencil"></i> Message</label>
+        <label for="node-input-write"><i class="fa fa-pencil"></i> Write</label>
         <input type="text" id="node-input-write" style="width:70%;" />
         <input type="hidden" id="node-input-writeType">
     </div>
+    <div class="form-row">
+        <label for="node-input-maxRetries"><i class="fa fa-tags"></i> Max Retries</label>
+        <input type="number" id="node-input-maxRetries" style="width: 70%;" step="1" min="0">
+        <label for="node-input-indefiniteRetries"><i class="fa fa-infinity"></i> Indefinite Retries</label>
+        <input type="checkbox" id="node-input-indefiniteRetries" style="width: auto; vertical-align: middle;">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-retryDelay"><i class="fa fa-clock-o"></i> Retry delay (ms)</label>
+        <input type="number" id="node-input-retryDelay" style="width: 70%;" step="1" min="0">
+    </div>
+
 
     <hr/>
 
@@ -74,7 +74,7 @@
         <label for="node-input-name"><i class="fa fa-bug"></i> Log-level</label>
         <select id="node-input-debug" style="width:110px;">
             <option value="error">Errors only</option>
-            <option value="warning">Qarnings and errors</option>
+            <option value="warning">Warnings and errors</option>
             <option value="info">Information, warnings and errors</option>
             <option value="debug">Debug</option>
         </select>
@@ -123,15 +123,19 @@
             portType: { value: "msg" },
             
             datamode: {value: "stream" },
-            datatype: {value: "buffer" },
+            datatype: {value: "utf8" },
             newline: {value: "\n" },
 
             write: { value: "payload", required: false, validate: RED.validators.typedInput("writeType") },
             writeType: { value: "msg" },
 
+            maxRetries: {value: "5", required: false}, 
+            retryDelay: {value: "3000", required: false},
+            indefiniteRetries: {value: false}, 
+
             topic: { value: "" },
             name: { value: "" },
-            debug: { value: "errors" }
+            debug: { value: "warning" }
         },
         inputs: 1,
         outputs: 1,
@@ -190,8 +194,19 @@
                 typeField: $("#node-input-writeType"),
                 types: ['str', 'msg', 'flow', 'global', 'env'] 
             });
-            
-        }
+            if (this.indefiniteRetries) {
+                $("#node-input-indefiniteRetries").prop('checked', true);
+            }
+
+            // Toggle Max Retries input based on the checkbox state
+            $("#node-input-indefiniteRetries").change(function() {
+                if ($("#node-input-indefiniteRetries").is(":checked")) {
+                    $("#node-input-maxRetries").prop('disabled', true);
+                } else {
+                    $("#node-input-maxRetries").prop('disabled', false);
+                }
+            }).change(); // Trigger change to set initial state
+                }
     }); 
 
 

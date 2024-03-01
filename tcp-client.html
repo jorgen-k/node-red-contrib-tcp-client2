@@ -1,11 +1,11 @@
 <script type="text/x-red" data-template-name="tcp-client">
 
-    <div class="form-row">
+     <div class="form-row">
         <label for="node-input-action"><i class="fa fa-tag"></i> Action</label>
-        <input type="text" id="node-input-action" placeholder="" style="width: 70%;">
+        <input type="text" id="node-input-action" style="width:70%;">
         <span style="display: block; padding-left: 106px; color: gray; font-size: x-small;">Available actions: connect, close and write</span>
         <input type="hidden" id="node-input-actionType">
-    </div>
+    </div> 
 
     <hr/>
 
@@ -27,7 +27,7 @@
 
     <hr/>
 
-    <div class="form-row">On <b>listen</b>:</div>
+    <div class="form-row">After <b>connect</b>:</div>
 
     <div class="form-row">
         <label><i class="fa fa-sign-out"></i> Output</label>
@@ -87,7 +87,7 @@
 
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt>action<span class="property-type">listen | close | write</span></dt>
+        <dt>action<span class="property-type">connect | close | write</span></dt>
         <dd> the action to perform </dd>
         <dt>host<span class="property-type">string</span></dt>
         <dd> the optional server to connect to </dd>
@@ -114,20 +114,19 @@
         color: '#cc66ff',
         defaults: {
 
-            action: { value: "listen", required: true, validate: RED.validators.typedInput("actionType") },
-            actionType: { value: "str" },
-
+            action: { value: "action", required: true, validate: RED.validators.typedInput("actionType") },
+            actionType: { value: "msg" },
             host: { value: "host", required: true, validate: RED.validators.typedInput("hostType") },
-            hostType: { value: "str" },
-            port: { value: "8080", required: true, validate: RED.validators.typedInput("portType") },
-            portType: { value: "str" },
+            hostType: { value: "msg" },
+            port: { value: "port", required: true, validate: RED.validators.typedInput("portType") },
+            portType: { value: "msg" },
             
             datamode: {value: "stream" },
             datatype: {value: "buffer" },
-            newline: {value: "" },
+            newline: {value: "\n" },
 
-            write: { value: "", required: false, validate: RED.validators.typedInput("writeType") },
-            writeType: { value: "str" },
+            write: { value: "payload", required: false, validate: RED.validators.typedInput("writeType") },
+            writeType: { value: "msg" },
 
             topic: { value: "" },
             name: { value: "" },
@@ -140,9 +139,7 @@
             return this.name || "tcp-client";
         },
         oneditprepare: function () {
-
             var updateOptions = function() {
-
                 var datamode = $("#node-input-datamode").val();
                 var datatype = $("#node-input-datatype").val();
 
@@ -159,8 +156,6 @@
                 }
 
                 $("#node-span-delimit").text("delimited by ");
-              
-
             };
 
             updateOptions();
@@ -168,19 +163,12 @@
             $("#node-input-datatype").change(updateOptions);
             $("#node-input-datamode").change(updateOptions);
 
-            if (this.actionType == null || this.actionType === 'string' || this.actionType === 'none') {
-                this.actionType = "str";
-            }
             $("#node-input-actionType").val(this.actionType);
             $("#node-input-action").typedInput({ 
-                default: 'str', 
                 typeField: $("#node-input-actionType"),
                 types: ['str', 'msg', 'flow', 'global', 'env'] 
             });
 
-            if (this.hostType == null || this.hostType === 'string' || this.hostType === 'none') {
-                this.hostType = "str";
-            }
             $("#node-input-hostType").val(this.hostType);
             $("#node-input-host").typedInput({ 
                 default: 'str', 
@@ -188,9 +176,6 @@
                 types: ['str', 'msg', 'flow', 'global', 'env'] 
             });
 
-            if (this.portType == null || this.portType === 'string' || this.portType === 'none') {
-                this.portType = "str";
-            }
             $("#node-input-portType").val(this.portType);
             $("#node-input-port").typedInput({ 
                 default: 'str', 
@@ -198,9 +183,6 @@
                 types: ['str', 'msg', 'flow', 'global', 'env'] 
             });
 
-            if (this.writeType == null || this.writeType === 'string' || this.writeType === 'none') {
-                this.writeType = "str";
-            }
             $("#node-input-writeType").val(this.writeType);
             $("#node-input-write").typedInput({ 
                 default: 'str', 
@@ -209,6 +191,7 @@
             });
             
         }
-    });
+    }); 
+
 
 </script>

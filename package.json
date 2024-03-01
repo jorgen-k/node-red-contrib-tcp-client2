@@ -4,7 +4,7 @@
   "description": "Dynamic TCP Client",
   "node-red": {
     "nodes": {
-      "tcp-client": "tcp-client.js"
+      "tcp-client": "tcp-client.js",
     }
   },
   "repository": {

@@ -3,13 +3,19 @@
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- Node status
+- Timeout and retries
+
 ### Changed
 - Improved documentation
 - Improved fault handling
 - Major refactoring - simplification and modernization 
-- Node status
-- To connect the "connect" keyword shall be used. "listen" still supported but depricated.
+- To connect the "connect" keyword shall be used. "listen" still supported but deprecated.
 - Removed connection pool (did not work anyway so backwards compatible). Now one node supports one connection at a time.
+If more than one connection is needed, use one node per connection.
+
+### Fixed
 
 ## [1.0.0] - 2024-02-28
 ### Added

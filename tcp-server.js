@@ -1,10 +1,13 @@
+'use strict';
+
 module.exports = function (RED) {
     const net = require('net');
+    const LogHelper  = require('./loghelper');
 
     class TcpServerNode {
         constructor(config) {
-            RED.nodes.createNode(this, config);
-            
+            RED.nodes.createNode(this, config);0
+            this.logger = new LogHelper(this, config.debug);
             // Configuration
             this.port = parseInt(config.port, 10) || 12345; // Default port if not specified
             this.clients = new Map(); // To keep track of connected clients

@@ -5,6 +5,7 @@
   "node-red": {
     "nodes": {
       "tcp-client": "tcp-client.js",
+      "tcp-server": "tcp-server.js"
     }
   },
   "repository": {

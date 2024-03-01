@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file. This projec
 If more than one connection is needed, use one node per connection.
 
 ### Fixed
+- "Action" was not changed correctly
 
 ## [1.0.0] - 2024-02-28
 ### Added

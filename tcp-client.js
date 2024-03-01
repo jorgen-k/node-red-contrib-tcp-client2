@@ -1,22 +1,25 @@
 'use strict';
 
+
 module.exports = function (RED) {
     const net = require('net');
+    const LogHelper  = require('./loghelper');
 
     class TcpClient {
         constructor(config) {
             RED.nodes.createNode(this, config);
-            var node = this;
-            node.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
-            node.socketTimeout = RED.settings.socketTimeout || 120000;
-            node.retries = 0;
-            node.MAX_RETRIES = 5;
-            node.RETRY_DELAY = 3000;
-            node.connection = null;
+            this.logger = new LogHelper(this, config.debug);
+            this.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
+            this.socketTimeout = RED.settings.socketTimeout || 120000;
+            this.retries = 0;
+            this.MAX_RETRIES = 5;
+            this.RETRY_DELAY = 3000;
+            this.connection = null;
+            this.logger.info("Init");
 
-            node.on('input', (msg, send, done) => {
+            this.on('input', (msg, send, done) => {
                 let action = RED.util.evaluateNodeProperty(config.action, config.actionType, this, msg);
-                node.warn("action:" +config.action);
+                this.logger.debug("action: " + action);
 
                 switch (action) {
                     case 'connect':
@@ -33,7 +36,7 @@ module.exports = function (RED) {
                         this.close(done);
                         break;
                     default:
-                        this.warn(`Unrecognized action: ${action}`);
+                        this.logger.warning(`Unrecognized action: ${action}`);
                         done();
                 }
             });
@@ -45,7 +48,7 @@ module.exports = function (RED) {
 
         connect(host, port, msg, done) {
             if (this.connection !== null) {
-                this.warn(`Connection already exists`);
+                this.logger.warning(`Connection already exists`);
                 done(); // todo close!?
                 return;
             }
@@ -56,7 +59,7 @@ module.exports = function (RED) {
         doConnect(connection, msg, done) {
             this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${this.connection.host}:${this.connection.port}` });
             connection.socket = net.createConnection(connection.port, connection.host , () => {
-                this.log(`Connected to ${connection.host}:${connection.port}`);
+                this.logger.info(`Connected to ${connection.host}:${connection.port}`);
                 this.status({ fill: "green", shape: "dot", text: `Connected to ${connection.host}:${connection.port}` });
                 done();
             });
@@ -65,20 +68,20 @@ module.exports = function (RED) {
                 let msg = { payload: data };
                 if (this.datatype === 'utf8') {
                     msg.payload = data.toString('utf8');
-                    this.log("Received utf-8 data: " + msg.payload);
+                    this.logger.debug("Received utf-8 data: " + msg.payload);
                 } else {
-                    this.log("Received data: " + msg.payload);
+                    this.logger.debug("Received data: " + msg.payload);
                 }
                 this.send(msg);
             });
 
             connection.socket.on('close', () => {
-                this.log(`Connection closed`);
+                this.logger.info(`Connection closed`);
                 this.connection = null;
             });
 
             connection.socket.on('error', (err) => {
-                this.error(`Error on connection to ${this.connection.host}:${this.connection.port}: ${err.message}`);
+                this.logger.info(`Error on connection to ${this.connection.host}:${this.connection.port}: ${err.message}`);
                 this.connection = null;
                 this.retryConnection(this.connection, done);
             });
@@ -86,9 +89,9 @@ module.exports = function (RED) {
 
         write(data, done) {
             if (!this.connection || !this.connection.socket) {
-                this.warn(`No connection available. Attempting to send data failed.`);
+                this.logger.warning(`No connection available. Attempting to send data failed.`);
             } else {
-                this.log("writeing " + data);
+                this.logger.debug("Writing " + data);
                 this.connection.socket.write(data, this.datatype, done);
             }
             done();
@@ -97,7 +100,7 @@ module.exports = function (RED) {
         close(done) {
             if (this.connection && this.connection.socket) {
                 this.connection.socket.end(() => {
-                    this.log(`Connection closed.`);
+                    this.logger.info(`Connection closed.`);
                 });
             }
             this.connection = null;
@@ -109,21 +112,18 @@ module.exports = function (RED) {
                 if (this.retries < this.MAX_RETRIES) {
                     setTimeout(() => {
                         connection.retries++;
-                        this.log(`Retry ${connection.retries}/${this.MAX_RETRIES} for ${connection.host}:${connection.port}`);
+                        this.logger.debug(`Retry ${connection.retries}/${this.MAX_RETRIES} for ${connection.host}:${connection.port}`);
                         this.doConnect({}, done);
                     }, this.RETRY_DELAY);
                 } else {
-                    this.error(`Maximum retries reached for ${connection.host}:${connection.port}. Giving up.`);
+                    this.logger.error(`Maximum retries reached for ${connection.host}:${connection.port}. Giving up.`);
                     this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${connection.host}:${connection.port}.` });
                     this.retries = 0; // Reset retries for future attempts
                     done();
                 }
             }
         }
-        log(data) {
-            // todo check log level
-            this.warn(data);
-        }
+
     }
     RED.nodes.registerType("tcp-client", TcpClient);
 };

@@ -71,11 +71,12 @@
     </div>
 
     <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-bug"></i> Debug</label>
+        <label for="node-input-name"><i class="fa fa-bug"></i> Log-level</label>
         <select id="node-input-debug" style="width:110px;">
-            <option value="none">Nothing</option>
-            <option value="errors">Only Errors</option>
-            <option value="all">Detailed</option>
+            <option value="error">Errors only</option>
+            <option value="warning">Qarnings and errors</option>
+            <option value="info">Information, warnings and errors</option>
+            <option value="debug">Debug</option>
         </select>
     </div>
 
@@ -130,7 +131,7 @@
 
             topic: { value: "" },
             name: { value: "" },
-            debug: { value: "none" }
+            debug: { value: "errors" }
         },
         inputs: 1,
         outputs: 1,

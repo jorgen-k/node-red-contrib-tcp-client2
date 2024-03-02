@@ -8,59 +8,173 @@ module.exports = function (RED) {
         constructor(config) {
             RED.nodes.createNode(this, config);0
             this.logger = new LogHelper(this, config.debug);
-            // Configuration
-            this.port = parseInt(config.port, 10) || 12345; // Default port if not specified
             this.clients = new Map(); // To keep track of connected clients
+            this.datatype = config.datatype || 'utf8';
+            this.server = null;
+            this.keepAliveTimeout = config.keepAliveTimeout !== undefined ? parseInt(config.keepAliveTimeout, 10) : 6000;
+            this.socketTimeout = config.socketTimeout !== undefined ? parseInt(config.socketTimeout, 10) : 60000;
+            this.logger.info(`Server Configuration: Keep-Alive Timeout: ${this.keepAliveTimeout} ms, Socket Timeout: ${this.socketTimeout} ms, Datatype ${this.datatype}`);
 
-            // Create TCP server
-            this.server = net.createServer(socket => {
+
+            this.on('input', (msg, send, done) => {
+                let action = RED.util.evaluateNodeProperty(config.action, config.actionType, this, msg);
+                let port = parseInt(RED.util.evaluateNodeProperty(config.port, config.portType, this, msg), 10);
+                let data = RED.util.evaluateNodeProperty(config.write, config.writeType, this, msg);
+                this.logger.debug("action: " + action + " port " + port);
+                this.logger.debug( "port " + config.port);
+                this.logger.debug( "msg " + JSON.stringify(msg));
+
+                switch (action) {
+                    case 'open':
+                        this.open(port, msg, done);
+                        break;
+                    case 'write':
+                        this.write(msg, data, done);
+                        break;
+                    case 'broadcast':
+                        this.broadcast(data, done);
+                        break;
+                    case 'close':
+                        this.close(done);
+                        break;
+                    default:
+                        this.logger.warning(`Unrecognized action: ${action}`);
+                        done();
+                }
+            });
+
+            this.on('close', (done) => {
+                this.close(done);
+            });
+
+        }
+
+        doDone(error = null){
+            if (this.done && typeof this.done === 'function') {
+                this.done(error); // Call 'done' to complete the node operation
+                this.done = null;
+            }
+        }
+        open(port, msg, done) {
+            if (this.server !== null) {
+                this.logger.warning("Server already running.");
+                if (done) done(); // Indicate that the operation is complete
+                return;
+            }
+        
+            this.server = net.createServer();
+            this.server.on('connection', (socket) => {
+                // New client connection has been established
                 const clientId = `${socket.remoteAddress}:${socket.remotePort}`;
-                this.log(`Client connected: ${clientId}`);
-
-                // Store socket in clients Map
-                this.clients.set(clientId, socket);
-
-                // Handle incoming data from client
-                socket.on('data', data => {
-                    // Emit data to Node-RED flow
-                    this.send({ payload: data.toString(), topic: clientId });
+                this.logger.info(`Client connected: ${clientId}`);
+                this.clients.set(clientId, socket); // Track this new client
+                this.status({fill: "green", shape: "dot", text: `Listening, ${this.clients.size} connections`})
+                if (this.keepAliveTimeout > 0) {
+                    socket.setKeepAlive(true, this.keepAliveTimeout);
+                }
+                if (this.socketTimeout > 0) {
+                    socket.setTimeout(this.socketTimeout);
+                }
+                
+                socket.on('timeout', () => {
+                    this.logger.info(`Connection timeout: ${clientId}`);
+                    socket.end(); // Close the connection
+                    this.clients.delete(clientId); // Remove the client from tracking
+                    if (this.server) {
+                        // during closing, sockets can close after the server is gone, this might be confusing 
+                        this.status({fill: "green", shape: "dot", text: `Listening, ${this.clients.size} connections`})
+                    }
                 });
-
-                // Handle client disconnect
+        
+                socket.on('data', (data) => {
+                    if (this.socketTimeout > 0) {
+                        socket.setTimeout(this.socketTimeout);// reset timeout
+                    }
+                    let parsedData = data.toString(this.datatype);
+                    this.logger.debug("Got data :" + parsedData);
+                    this.send({payload: parsedData, topic: clientId});
+                });
+        
                 socket.on('close', () => {
-                    this.log(`Client disconnected: ${clientId}`);
-                    this.clients.delete(clientId); // Remove client from tracking
+                    this.clients.delete(clientId); // Remove the client from tracking
+                    this.logger.info(`Client disconnected: ${clientId}`);
+                    if (this.server) {
+                        // during closing, sockets can close after the server is gone, this might be confusing 
+                        this.status({fill: "green", shape: "dot", text: `Listening, ${this.clients.size} connections`})
+                    }
                 });
-
-                // Handle socket errors
-                socket.on('error', err => {
-                    this.error(`Error from client ${clientId}: ${err.message}`);
+        
+                socket.on('error', (err) => {
+                    this.logger.error(`Error from client ${clientId}: ${err.message}`);
                 });
             });
 
-            // Start listening on configured port
-            this.server.listen(this.port, () => {
-                this.log(`TCP Server listening on port ${this.port}`);
+            this.server.on('listening', () => {
+                this.logger.debug(`TCP Server listening`);
             });
 
-            // Handle errors on the server
-            this.server.on('error', err => {
-                this.error(`Server error: ${err.message}`);
+            this.server.on('close', () => {
+                this.logger.info('Server has closed');
+                this.status({fill: "red", shape: "dot", text: "closed"});
             });
 
-            // Cleanup on node close (delete or redeploy)
-            this.on('close', () => {
-                this.server.close(); // Stop accepting new connections
-                this.clients.forEach(socket => {
-                    socket.end(); // Close existing connections
-                });
+            this.server.on('error', (err) => {
+                this.logger.error(`Server error: ${err.message}`);
+                if (done) done(err);
+            });
+        
+            this.server.listen(port, () => {
+                this.logger.info(`TCP Server listening on port ${port}`);
+                this.status({ fill: "green", shape: "dot", text: `Listening on port ${port}` });
+                if (done) done(); // Successfully started the server
             });
         }
-
-        // Simplified log method for demonstration
-        log(message) {
-            this.warn(message); // Using 'warn' for visibility in Node-RED's debug sidebar
+        
+ 
+        write(msg, data, done) {
+            this.done = done;
+            const client = msg.topic;
+            if (client && this.clients.has(client)) {
+                this.logger.debug(`Sending to client ${client}: ${data}`);
+                const clientSocket = this.clients.get(client);
+                try {
+                    clientSocket.write(data, this.datatype); 
+                    this.logger.debug(`Data sent to client ${client}`);
+                    this.doDone();
+                } catch (error) {
+                    this.logger.error(`Error sending data to client ${client}: ${error.message}`);
+                    this.doDone(error); 
+                }
+            } else {
+                this.logger.warning(`Client ${client} not found or topic not provided`);
+                if (done) done(new Error(`Client ${client} not found or topic not provided`));
+            }
         }
+
+
+        close(done) {
+            // Close all client connections
+            this.status({fill: "yellow", shape: "dot", text: `Closing ${this.clients.size} connections`})
+            this.clients.forEach((socket, clientId) => {
+                this.logger.info(`Closing connection for client: ${clientId}`);
+                socket.end(); 
+                this.clients.delete(clientId); 
+                this.status({fill: "yellow", shape: "dot", text: `Closing ${this.clients.size} connections`})
+            });
+        
+            // Check if the server is initialized and listening
+            if (this.server) {
+                this.server.close(() => {
+                    this.logger.info("TCP Server has been closed.");
+                    this.status({fill: "red", shape: "dot", text: "closed"});
+                    this.server = null;
+                    if (done) done(); // Callback to signal Node-RED that the operation is complete
+                });
+            } else {
+                if (done) done();
+            }
+        }
+        
     }
 
     RED.nodes.registerType("tcp-server", TcpServerNode);

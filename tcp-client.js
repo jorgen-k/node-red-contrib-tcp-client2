@@ -91,7 +91,13 @@ module.exports = function (RED) {
 
             connection.socket.on('close', () => {
                 this.logger.info(`Socket closed`);
-            });
+                if (this.connection) {
+                    this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
+                    this._retryConnection(this.connection);
+                } else {
+                    this.logger.error("Connection lost");
+                }
+        });
 
             connection.socket.on('error', (err) => {
                 if (this.connection) {

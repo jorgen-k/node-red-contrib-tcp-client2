@@ -38,6 +38,17 @@
        <input type="text" id="node-input-write" style="width:70%;" />
        <input type="hidden" id="node-input-writeType">
    </div>
+   <hr/>
+   <div class="form-row">
+    <label for="node-input-keepAliveTimeout"><i class="icon icon-hourglass"></i> TCP Keep-Alive Timeout (ms)</label>
+    <input type="number" id="node-input-keepAliveTimeout" placeholder="Enter timeout in milliseconds" style="width:70%;" name="keepAliveTimeout">
+</div>
+
+<div class="form-row">
+    <label for="node-input-socketTimeout"><i class="icon icon-hourglass"></i> Application-Level Timeout (ms)</label>
+    <input type="number" id="node-input-socketTimeout" placeholder="Enter timeout in milliseconds" style="width:70%;" name="socketTimeout">
+</div>
+
 
    <hr/>
 
@@ -64,7 +75,7 @@
 </script>
 
 <script type="text/x-red" data-help-name="tcp-server">
-   
+
    <p>TCP server</p>
 
    <h3>Inputs</h3>
@@ -91,80 +102,83 @@
 
 <script type="text/javascript">
 
-   RED.nodes.registerType('tcp-server', {
-       category: 'network',
-       color: '#cc66ff',
-       defaults: {
+    RED.nodes.registerType('tcp-server', {
+        category: 'network',
+        color: '#cc66ff',
+        defaults: {
 
-           action: { value: "action", required: true, validate: RED.validators.typedInput("actionType") },
-           actionType: { value: "msg" },
-           port: { value: "port", required: true, validate: RED.validators.typedInput("portType") },
-           portType: { value: "msg" },
-           
-           datamode: { value: "stream" },
-           datatype: { value: "utf8" },
-           newline: { value: "x\n" },
+            action: { value: "action", required: true, validate: RED.validators.typedInput("actionType") },
+            actionType: { value: "msg" },
+            port: { value: "port", required: true, validate: RED.validators.typedInput("portType") },
+            portType: { value: "msg" },
 
-           write: { value: "payload", required: false, validate: RED.validators.typedInput("writeType") },
-           writeType: { value: "msg" },
+            datamode: { value: "stream" },
+            datatype: { value: "utf8" },
+            newline: { value: "x\n" },
 
-           topic: { value: "" },
-           name: { value: "" },
-           debug: { value: "warning" }
-       },
-       inputs: 1,
-       outputs: 1,
-       icon: "bridge-dash.svg",
-       label: function () {
-           return this.name || "tcp-server";
-       },
-       oneditprepare: function () {
-           var updateOptions = function() {
-               var datamode = $("#node-input-datamode").val();
-               var datatype = $("#node-input-datatype").val();
+            write: { value: "payload", required: false, validate: RED.validators.typedInput("writeType") },
+            writeType: { value: "msg" },
 
-               if (datamode == "stream") {
-                   if (datatype == "utf8" ) {
-                       $("#node-row-newline").show();
-                   } 
-                   else {
-                       $("#node-row-newline").hide();
-                   }
-               } 
-               else {
-                   $("#node-row-newline").hide();
-               }
+            keepAliveTimeout: {value: 6000}, 
+            socketTimeout: {value: 60000}, 
 
-               $("#node-span-delimit").text("delimited by ");
-           };
+            topic: { value: "" },
+            name: { value: "" },
+            debug: { value: "warning" }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "bridge-dash.svg",
+        label: function () {
+            return this.name || "tcp-server";
+        },
+        oneditprepare: function () {
+            var updateOptions = function () {
+                var datamode = $("#node-input-datamode").val();
+                var datatype = $("#node-input-datatype").val();
 
-           updateOptions();
+                if (datamode == "stream") {
+                    if (datatype == "utf8") {
+                        $("#node-row-newline").show();
+                    }
+                    else {
+                        $("#node-row-newline").hide();
+                    }
+                }
+                else {
+                    $("#node-row-newline").hide();
+                }
 
-           $("#node-input-datatype").change(updateOptions);
-           $("#node-input-datamode").change(updateOptions);
+                $("#node-span-delimit").text("delimited by ");
+            };
 
-           $("#node-input-actionType").val(this.actionType);
-           $("#node-input-action").typedInput({ 
-               typeField: $("#node-input-actionType"),
-               types: ['str', 'msg', 'flow', 'global', 'env'] 
-           });
+            updateOptions();
 
-           $("#node-input-portType").val(this.portType);
-           $("#node-input-port").typedInput({ 
-               default: 'str', 
-               typeField: $("#node-input-portType"),
-               types: ['str', 'msg', 'flow', 'global', 'env'] 
-           });
+            $("#node-input-datatype").change(updateOptions);
+            $("#node-input-datamode").change(updateOptions);
 
-           $("#node-input-writeType").val(this.writeType);
-           $("#node-input-write").typedInput({ 
-               default: 'str', 
-               typeField: $("#node-input-writeType"),
-               types: ['str', 'msg', 'flow', 'global', 'env'] 
-           });
-           
-       }
-   }); 
+            $("#node-input-actionType").val(this.actionType);
+            $("#node-input-action").typedInput({
+                typeField: $("#node-input-actionType"),
+                types: ['str', 'msg', 'flow', 'global', 'env']
+            });
+
+            $("#node-input-portType").val(this.portType);
+            $("#node-input-port").typedInput({
+                default: 'str',
+                typeField: $("#node-input-portType"),
+                types: ['str', 'msg', 'flow', 'global', 'env']
+            });
+
+            $("#node-input-writeType").val(this.writeType);
+            $("#node-input-write").typedInput({
+                default: 'str',
+                typeField: $("#node-input-writeType"),
+                types: ['str', 'msg', 'flow', 'global', 'env']
+            });
+
+        }
+    });
 
 
 </script>

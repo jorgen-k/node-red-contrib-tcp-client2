@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. This projec
 ### Added
 - TCP server node
 - Node status
-- Timeout and retries
+- Configurable timeout and retries
 - Improved logging
 
 ### Changed

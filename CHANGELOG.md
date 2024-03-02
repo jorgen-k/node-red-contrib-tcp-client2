@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [unreleased]
+
+### Added
+- Examples
+
+### Fixed
+- TCP Client: Checkbox not visible in gui
+
 ## [1.1.0] - 2024-03-02
 ### Added
 - New TCP server node

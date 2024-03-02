@@ -4,21 +4,21 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [Unreleased]
 ### Added
-- TCP server node
-- Node status
-- Configurable timeout and retries
-- Improved logging
+- New TCP server node
+- Node status for TCP client
+- Configurable timeout and retries for TCP Client
+- Improved logging with loglevels setable att configuration
 
 ### Changed
 - Improved documentation
 - Improved fault handling
-- Major refactoring - simplification and modernization 
-- To connect the "connect" keyword shall be used. "listen" still supported but deprecated.
-- Removed connection pool (did not work anyway so backwards compatible). Now one node supports one connection at a time.
-If more than one connection is needed, use one node per connection.
+- Total rewrite of tcp client, more robust
+- TCP-client: To connect the "connect" keyword shall be used. "listen" still supported but deprecated.
+- TCP-client: Do not support connection pool. It did not work anyway in legacy implementation. Now one node supports one connection at a time. If more than one connection is needed, use one node per connection.
 
 ### Fixed
-- "Action" was not changed correctly
+- Several bugs in gui
+- Due to rewrite now thouroughly happy-tested, see TESTING
 
 ## [1.0.0] - 2024-02-28
 ### Added

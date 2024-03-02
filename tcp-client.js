@@ -1,9 +1,30 @@
+/*!
+ * Copyright 2024 Jörgen Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 'use strict';
 
 
 module.exports = function (RED) {
     const net = require('net');
-    const LogHelper  = require('./loghelper');
+    const LogHelper = require('./loghelper');
 
     class TcpClient {
         constructor(config) {
@@ -11,10 +32,9 @@ module.exports = function (RED) {
             this.logger = new LogHelper(this, config.debug);
             this.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
             this.socketTimeout = RED.settings.socketTimeout || 120000;
-            this.retries = 0;
             this.maxRetries = parseInt(config.maxRetries, 10) || 5;
             this.retryDelay = parseInt(config.retryDelay, 10) || 3000; // Fixed typo from 'retryDaley' to 'retryDelay'
-            
+
             if (config.indefiniteRetries) {
                 this.maxRetries = Number.MAX_SAFE_INTEGER; // Use MAX_SAFE_INTEGER for practical "indefinite" value
             }
@@ -47,12 +67,19 @@ module.exports = function (RED) {
                 }
             });
 
+    
             this.on('close', (done) => {
-                this.close(done);
+                // Clear any pending retry timeout
+                if (this.connection && this.connection.retryTimeoutId) {
+                    clearTimeout(this.connection.retryTimeoutId);
+                }
+                this._destroySocket();           
+                this.logger.info("Node is closing. Cleanup done.");
+                done(); // Notify Node-RED that cleanup is complete
             });
         }
 
-        doDone(){
+        doDone() {
             if (this.done && typeof this.done === 'function') {
                 this.done(); // Call 'done' to complete the node operation
                 this.done = null;
@@ -66,19 +93,35 @@ module.exports = function (RED) {
                 this.doDone(); // todo close!?
                 return;
             }
-            this.connection = { buffer: '', host: host, port: port }
-            this._doConnect(this.connection, msg);
-        } 
+            this.connection = { buffer: '', host: host, port: port, retries: 0, attempting: false, retryTimeoutId: null, socket: null };
+            this._doConnect(msg);
+        }
 
-        _doConnect(connection, msg) {
-            this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${connection.host}:${connection.port}` });
-            connection.socket = net.createConnection(connection.port, connection.host , () => {
-                this.logger.info(`Connected to ${connection.host}:${connection.port}`);
-                this.status({ fill: "green", shape: "dot", text: `Connected to ${connection.host}:${connection.port}` });
+        _doConnect(msg) {
+            this.connection.retryTimeoutId = null;
+            this.status({ fill: "yellow", shape: "dot", text: `Connecting to ${this.connection.host}:${this.connection.port}` });
+            if (this.connection.socket) {
+                this._destroySocket();
+            }
+
+            this.connection.socket = net.createConnection(this.connection.port, this.connection.host, () => {
+                this.logger.info(`Connected to ${this.connection.host}:${this.connection.port}`);
                 this.doDone();
             });
+            this._setupSocketEventHandlers(this.connection.socket);
+        }
 
-            connection.socket.on('data', (data) => {
+        _destroySocket() {
+            if (this.connection && this.connection.socket) {
+                this.logger.debug("Destroying old socket");
+                this.connection.socket.destroy();
+                this.connection.socket = null;
+            }
+        }
+
+        _setupSocketEventHandlers(socket) {
+
+            socket.on('data', (data) => {
                 let msg = { payload: data };
                 if (this.datatype === 'utf8') {
                     msg.payload = data.toString('utf8');
@@ -89,7 +132,14 @@ module.exports = function (RED) {
                 this.send(msg);
             });
 
-            connection.socket.on('close', () => {
+            socket.on('connect', () => {
+                this.connection.retries = 0;
+                this.logger.debug("Connection established, retries reset.");
+                this.status({ fill: "green", shape: "dot", text: `Connected to ${this.connection.host}:${this.connection.port}` });
+                this.doDone(); // Complete any pending operation, signaling successful connection
+            });
+
+            socket.on('close', () => {
                 this.logger.info(`Socket closed`);
                 if (this.connection) {
                     this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
@@ -97,13 +147,14 @@ module.exports = function (RED) {
                 } else {
                     this.logger.error("Connection lost");
                 }
-        });
+            });
 
-            connection.socket.on('error', (err) => {
+            socket.on('error', (err) => {
                 if (this.connection) {
                     this.logger.info(`Error connecting to ${this.connection.host}:${this.connection.port}: ${err.message}`);
                     this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
-                    this._retryConnection(this.connection);
+                    this._destroySocket();
+                    this._retryConnection();
                 } else {
                     this.logger.info("Socket error: " + err.message);
                     // connection gone, probably due to close so we bail out
@@ -114,11 +165,11 @@ module.exports = function (RED) {
 
         write(data, done) {
             this.done = done;
-            if (!this.connection || !this.connection.socket) {
-                this.logger.warning(`No connection available. Attempting to send data failed.`);
-            } else {
+            if (this.connection && this.connection.socket) {
                 this.logger.debug("Writing " + data);
                 this.connection.socket.write(data, this.datatype, done);
+            } else {
+                this.logger.warning(`No connection available. Attempting to send data failed.`);
             }
             this.doDone();
         }
@@ -131,24 +182,28 @@ module.exports = function (RED) {
                 });
             }
             this.connection = null;
-            this.retries = 0; 
             this.status({ fill: "blue", shape: "ring", text: "closed" });
             this.doDone();
         }
 
-        _retryConnection(connection) {
-            if (connection) {
-                if (this.retries < this.maxRetries) {
-                    setTimeout(() => {
-                        this.retries++;
-                        this.logger.debug(`Retry ${this.retries}/${this.maxRetries} for ${connection.host}:${connection.port}`);
-                        this._doConnect(connection);
+        _retryConnection() {
+            if (this.connection && this.connection.retries < this.maxRetries) {
+                if (!this.connection.retryTimeoutId) {
+                    this.connection.retryTimeoutId = setTimeout(() => {
+                        if (this.connection) { // connection might been closed in the meantime
+                            this.connection.retries++;
+                            this.logger.debug(`Retry ${this.connection.retries}/${this.maxRetries} for ${this.connection.host}:${this.connection.port}`);
+                            this._doConnect();
+                        }
                     }, this.retryDelay);
                 } else {
-                    this.logger.error(`Maximum retries reached for ${connection.host}:${connection.port}. Giving up.`);
-                    this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${connection.host}:${connection.port}.` });
-                    this.close(this.done);
+                    this.logger.debug("Retry already in progress");
                 }
+            } else {
+                this.logger.error(`Maximum retries reached for ${this.connection.host}:${this.connection.port}. Giving up.`);
+                this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${this.connection.host}:${this.connection.port}.` });
+                this._destroySocket();
+                this.connection = null;
             }
         }
 

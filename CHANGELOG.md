@@ -5,15 +5,23 @@ All notable changes to this project will be documented in this file. This projec
 ## [unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [1.1.1] - 2024-03-03
+
+### Added
 - Examples
 
 ### Changed
-Nothing
+- Improved Readme for TCP-Client
 
 ### Fixed
 - TCP Client: Checkbox not visible in gui
-- TCP Client: Error when sending objects.
-- TCP CLient: Error handling stream of strings.
+- TCP Client: Fixed error when sending objects.
+- TCP CLient: Fixed error handling stream of strings.
 
 ## [1.1.0] - 2024-03-02
 ### Added

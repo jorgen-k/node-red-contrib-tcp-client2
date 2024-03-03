@@ -30,10 +30,12 @@ module.exports = function (RED) {
         constructor(config) {
             RED.nodes.createNode(this, config);
             this.logger = new LogHelper(this, config.debug);
-            this.datatype = config.datatype || 'utf8'; // Example: 'utf8', 'buffer'
+            this.datatype = config.datatype || 'utf8'; // 'utf8', 'base64', 'buffer'
             this.socketTimeout = RED.settings.socketTimeout || 120000;
             this.maxRetries = parseInt(config.maxRetries, 10) || 5;
-            this.retryDelay = parseInt(config.retryDelay, 10) || 3000; // Fixed typo from 'retryDaley' to 'retryDelay'
+            this.retryDelay = parseInt(config.retryDelay, 10) || 3000; 
+            this.delimiter = (config.newline || "").replace("\\n","\n").replace("\\r","\r");
+            this.stream = (!config.datamode || config.datamode=='stream'); /* stream, single*/
 
             if (config.indefiniteRetries) {
                 this.maxRetries = Number.MAX_SAFE_INTEGER; // Use MAX_SAFE_INTEGER for practical "indefinite" value
@@ -122,15 +124,46 @@ module.exports = function (RED) {
         _setupSocketEventHandlers(socket) {
 
             socket.on('data', (data) => {
-                let msg = { payload: data };
-                if (this.datatype === 'utf8') {
-                    msg.payload = data.toString('utf8');
-                    this.logger.debug("Received utf-8 data: " + msg.payload);
+                this.logger.debug("Data!:" + data);
+                if (this.stream) {
+                    if (this.datatype === 'utf8' || this.datatype === 'base64') {
+                        // Convert binary data to the appropriate text format and append to the buffer
+                        this.connection.buffer += data.toString(this.datatype);
+
+                        // Handle delimited strings for 'utf8' and 'base64'
+                        let parts = this.connection.buffer.split(this.delimiter);
+                        for (let i = 0; i < parts.length - 1; i++) {
+                            let msgPayload = parts[i];
+                            /* TODO make this a configurable option
+                            if (this.datatype === 'base64') {
+                                // For base64 optionaly convert the payload back to a Buffer
+                                msgPayload = Buffer.from(parts[i], 'base64');
+                            }*/
+                            let msg = { payload: msgPayload };
+                            this.send(msg); // Send each complete message
+                            this.logger.debug(`Sent ${this.datatype} data: ${msg.payload}`);
+                        }
+
+                        // Keep the last part (incomplete message) in the buffer for the next 'data' event
+                        this.connection.buffer = parts[parts.length - 1];
+                    } else if (this.datatype === 'buffer') {
+                        this.send({ payload: data });
+                        this.logger.debug("Sent binary data");
+                    }
                 } else {
-                    this.logger.debug("Received data: " + msg.payload);
+                    // If not streaming, send data as single messages based on datatype
+                    let msgPayload = data;
+                    if (this.datatype === 'utf8') {
+                        msgPayload = data.toString('utf8');
+                    } else if (this.datatype === 'base64') {
+                        msgPayload = data.toString('base64');
+                    }
+                    let msg = { payload: msgPayload };
+                    this.send(msg);
+                    this.logger.debug(`Sent ${this.datatype} data as a single message`);
                 }
-                this.send(msg);
             });
+
 
             socket.on('connect', () => {
                 this.connection.retries = 0;
@@ -166,6 +199,10 @@ module.exports = function (RED) {
         write(data, done) {
             this.done = done;
             if (this.connection && this.connection.socket) {
+                if (typeof data === "object") {
+                    data = JSON.stringify(data) + "\r\n";
+                    this.logger.debug("Object converted to string: " + data);
+                } 
                 this.logger.debug("Writing " + data);
                 this.connection.socket.write(data, this.datatype, done);
             } else {

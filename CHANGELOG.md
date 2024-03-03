@@ -7,8 +7,13 @@ All notable changes to this project will be documented in this file. This projec
 ### Added
 - Examples
 
+### Changed
+Nothing
+
 ### Fixed
 - TCP Client: Checkbox not visible in gui
+- TCP Client: Error when sending objects.
+- TCP CLient: Error handling stream of strings.
 
 ## [1.1.0] - 2024-03-02
 ### Added

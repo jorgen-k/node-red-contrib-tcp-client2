@@ -33,9 +33,9 @@ module.exports = function (RED) {
             this.datatype = config.datatype || 'utf8'; // 'utf8', 'base64', 'buffer'
             this.socketTimeout = RED.settings.socketTimeout || 120000;
             this.maxRetries = parseInt(config.maxRetries, 10) || 5;
-            this.retryDelay = parseInt(config.retryDelay, 10) || 3000; 
-            this.delimiter = (config.newline || "").replace("\\n","\n").replace("\\r","\r");
-            this.stream = (!config.datamode || config.datamode=='stream'); /* stream, single*/
+            this.retryDelay = parseInt(config.retryDelay, 10) || 3000;
+            this.delimiter = (config.newline || "").replace("\\n", "\n").replace("\\r", "\r");
+            this.stream = (!config.datamode || config.datamode == 'stream'); /* stream, single*/
 
             if (config.indefiniteRetries) {
                 this.maxRetries = Number.MAX_SAFE_INTEGER; // Use MAX_SAFE_INTEGER for practical "indefinite" value
@@ -69,13 +69,13 @@ module.exports = function (RED) {
                 }
             });
 
-    
+
             this.on('close', (done) => {
                 // Clear any pending retry timeout
                 if (this.connection && this.connection.retryTimeoutId) {
                     clearTimeout(this.connection.retryTimeoutId);
                 }
-                this._destroySocket();           
+                this._destroySocket();
                 this.logger.info("Node is closing. Cleanup done.");
                 done(); // Notify Node-RED that cleanup is complete
             });
@@ -128,24 +128,29 @@ module.exports = function (RED) {
                 if (this.stream) {
                     if (this.datatype === 'utf8' || this.datatype === 'base64') {
                         // Convert binary data to the appropriate text format and append to the buffer
-                        this.connection.buffer += data.toString(this.datatype);
+                        if (this.connection) {
+                            this.connection.buffer += data.toString(this.datatype);
 
-                        // Handle delimited strings for 'utf8' and 'base64'
-                        let parts = this.connection.buffer.split(this.delimiter);
-                        for (let i = 0; i < parts.length - 1; i++) {
-                            let msgPayload = parts[i];
-                            /* TODO make this a configurable option
-                            if (this.datatype === 'base64') {
-                                // For base64 optionaly convert the payload back to a Buffer
-                                msgPayload = Buffer.from(parts[i], 'base64');
-                            }*/
-                            let msg = { payload: msgPayload };
-                            this.send(msg); // Send each complete message
-                            this.logger.debug(`Sent ${this.datatype} data: ${msg.payload}`);
+                            // Handle delimited strings for 'utf8' and 'base64'
+                            let parts = this.connection.buffer.split(this.delimiter);
+                            for (let i = 0; i < parts.length - 1; i++) {
+                                let msgPayload = parts[i];
+                                /* TODO make this a configurable option
+                                if (this.datatype === 'base64') {
+                                    // For base64 optionaly convert the payload back to a Buffer
+                                    msgPayload = Buffer.from(parts[i], 'base64');
+                                }*/
+                                let msg = { payload: msgPayload };
+                                this.send(msg); // Send each complete message
+                                this.logger.debug(`Sent ${this.datatype} data: ${msg.payload}`);
+                            }
+
+                            // Keep the last part (incomplete message) in the buffer for the next 'data' event
+                            this.connection.buffer = parts[parts.length - 1];
+                        } else {
+                            // this can happen if streaming and closing, the socket might get data after the close
+                            this.logger.info("Lost connection object");
                         }
-
-                        // Keep the last part (incomplete message) in the buffer for the next 'data' event
-                        this.connection.buffer = parts[parts.length - 1];
                     } else if (this.datatype === 'buffer') {
                         this.send({ payload: data });
                         this.logger.debug("Sent binary data");
@@ -202,7 +207,7 @@ module.exports = function (RED) {
                 if (typeof data === "object") {
                     data = JSON.stringify(data) + "\r\n";
                     this.logger.debug("Object converted to string: " + data);
-                } 
+                }
                 this.logger.debug("Writing " + data);
                 this.connection.socket.write(data, this.datatype, done);
             } else {
@@ -215,10 +220,10 @@ module.exports = function (RED) {
             this.done = done;
             if (this.connection && this.connection.socket) {
                 this.connection.socket.end(() => {
+                    this.connection = null;
                     this.logger.info(`Connection closed.`);
                 });
             }
-            this.connection = null;
             this.status({ fill: "blue", shape: "ring", text: "closed" });
             this.doDone();
         }

@@ -78,26 +78,22 @@
 
    <p>TCP server</p>
 
-   <h3>Inputs</h3>
-   <dl class="message-properties">
-       <dt>action<span class="property-type">connect | close | write</span></dt>
-       <dd> the action to perform </dd>
-       <dt>host<span class="property-type">string</span></dt>
-       <dd> the optional server to connect to </dd>
-       <dt>port<span class="property-type">number</span></dt>
-       <dd> the port to accept incoming connections or the server port </dd>
-       <dt>output</dt>
-       <dd> output settings for the payload </dd>
-       <dt>write<span class="property-type">string</span></dt>
-       <dd> message or property to write to socket </dd>
-       <dt class="optional">topic <span class="property-type">string</span></dt>
-       <dd> the topic to publish to </dd>
-       <dt class="optional">name <span class="property-type">string</span></dt>
-       <dd> the name for this node </dd>
-       <dt class="optional">debug</dt>
-       <dd> level of debug messages to show </dd>
-   </dl>
+   <script type="text/x-red" data-help-name="tcp-server">
+    <p>The TCP Server node allows the creation of a TCP server within Node-RED flows. It can accept multiple incoming TCP connections, enabling two-way communication between the server and its clients.</p>
 
+    <h3>Configuration</h3>
+    <p>The node can be configured with the following options:</p>
+    <ul>
+        <li><b>Action:</b> Defines the server's behavior (open, close, write) to manage connections and data transmission.</li>
+        <li><b>Port:</b> The port number on which the server will listen for incoming connections.</li>
+        <li><b>Output:</b> Determines how incoming data is handled, either as a continuous stream or single messages, and the format of the output data (String, Buffer, Base64).</li>
+        <li><b>Delimiter:</b> For string-based communication, specifies the delimiter character for parsing incoming streams into messages.</li>
+        <li><b>TCP Keep-Alive Timeout:</b> The timeout in milliseconds for TCP keep-alive packets. Helps in keeping the connection active.</li>
+        <li><b>Application-Level Timeout:</b> The duration in milliseconds before considering the connection idle and potentially closing it.</li>
+        <li><b>Name:</b> A user-defined name for the node to easily identify it within the flow.</li>
+        <li><b>Log-level:</b> The verbosity of logging for debugging purposes.</li>
+    </ul>
+   <p>For more detailed information, usage examples, and configuration options, please refer to the <a href="https://github.com/jorgen-k/node-red-contrib-tcp-client2/blob/master/README.md" target="_blank">README.md file on GitHub</a>.</p>
 </script>
 
 <script type="text/javascript">

@@ -85,30 +85,24 @@
 </script>
 
 <script type="text/x-red" data-help-name="tcp-client">
-    
-    <p>TCP client</p>
+    <p>The TCP Client node enables Node-RED flows to establish and manage TCP connections, facilitating data sending and receiving over TCP/IP. It supports dynamic connection handling to various TCP servers, making it versatile for different networking scenarios.</p>
 
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt>action<span class="property-type">connect | close | write</span></dt>
-        <dd> the action to perform </dd>
-        <dt>host<span class="property-type">string</span></dt>
-        <dd> the optional server to connect to </dd>
-        <dt>port<span class="property-type">number</span></dt>
-        <dd> the port to accept incoming connections or the server port </dd>
-        <dt>output</dt>
-        <dd> output settings for the payload </dd>
-        <dt>write<span class="property-type">string</span></dt>
-        <dd> message or property to write to socket </dd>
-        <dt class="optional">topic <span class="property-type">string</span></dt>
-        <dd> the topic to publish to </dd>
-        <dt class="optional">name <span class="property-type">string</span></dt>
-        <dd> the name for this node </dd>
-        <dt class="optional">debug</dt>
-        <dd> level of debug messages to show </dd>
-    </dl>
-
+    <h3>Configuration</h3>
+    <p>The node can be configured with the following options:</p>
+    <ul>
+        <li><b>Action:</b> Specifies the desired operation (connect, close, write), allowing dynamic control over TCP connections.</li>
+        <li><b>Host:</b> The hostname or IP address of the target TCP server.</li>
+        <li><b>Port:</b> The port number on which to establish the TCP connection.</li>
+        <li><b>Output:</b> Configures how the node handles incoming data, including options for continuous stream processing or handling data as single messages. Also defines the data format (String, Buffer, Base64).</li>
+        <li><b>Delimiter:</b> For string-based data, sets the delimiter for segmenting the data stream into discrete messages.</li>
+        <li><b>Retry Logic:</b> Defines the behavior for reconnection attempts, including maximum retries and delay between retries.</li>
+        <li><b>Socket Timeout:</b> The timeout in milliseconds for considering the connection idle and closing it if necessary.</li>
+        <li><b>Name:</b> Allows assigning a custom name to the node for easier identification within flows.</li>
+        <li><b>Log-level:</b> Sets the level of logging detail for monitoring and debugging.</li>
+    </ul>
+    <p>For additional details on configuring and using the TCP Client, including examples and advanced features, please refer to the <a href="https://github.com/jorgen-k/node-red-contrib-tcp-client2/blob/master/README.md" target="_blank">README.md file on GitHub</a>.</p>
 </script>
+
 
 <script type="text/javascript">
 

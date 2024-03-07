@@ -8,9 +8,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -19,5 +17,15 @@ jobs:
         with:
           node-version: '20' 
           registry-url: 'https://registry.npmjs.org/'
-      - run: npm ci
-      - run: npx semantic-release
+      - name: CI
+        run: npm ci
+      - name: Semantic Release
+        run: npx semantic-release
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Notify Node-RED Library
+        if: success() && github.ref == 'refs/heads/master' # Ensure this runs only on successful release and on the master branch
+        run: curl -X POST https://catalogue.nodered.org/add/node/YOUR_NODE_NAME
+        env:
+          NODE_RED_NODE_NAME: node-red-contrib-tcp-client2

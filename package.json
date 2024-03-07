@@ -26,6 +26,8 @@
   },
   "homepage": "https://github.com/jorgen-k/node-red-contrib-tcp-client2#readme",
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "semantic-release": "^23.0.2"
   }
 }

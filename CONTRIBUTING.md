@@ -34,3 +34,10 @@ By participating in this project, you agree to abide by the [Code of Conduct](CO
 If you have any questions or concerns about contributing to node-red-contrib-tcp-client, feel free to reach out to the project maintainers or open a discussion on the [GitHub Discussions](https://github.com/jorgen-k/node-red-contrib-tcp-client2/discussions) page.
 
 We appreciate your interest in contributing to node-red-contrib-tcp-client and look forward to your contributions!
+
+## Releasing
+
+1. Commit and push
+2. Test manually all testcasesasdf
+3. run npm release in development directory
+4. On [node/node-red-contrib-tcp-client2)](https://flows.nodered.org/node/node-red-contrib-tcp-client2) press *check for update*

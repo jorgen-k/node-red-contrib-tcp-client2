@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## [1.1.2]
 
+
 ### Added
 
 ### Changed

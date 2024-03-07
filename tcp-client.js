@@ -44,10 +44,11 @@ module.exports = function (RED) {
             this.connection = null;
             this.done = null;
             this.logger.info("Init");
+            this.msg = null; // for throwing errors mainly;
 
             this.on('input', (msg, send, done) => {
                 let action = RED.util.evaluateNodeProperty(config.action, config.actionType, this, msg);
-                this.logger.debug("action: " + action);
+                this.logger.debug("action: " + action, msg);
 
                 switch (action) {
                     case 'connect':
@@ -149,7 +150,7 @@ module.exports = function (RED) {
                             this.connection.buffer = parts[parts.length - 1];
                         } else {
                             // this can happen if streaming and closing, the socket might get data after the close
-                            this.logger.info("Lost connection object");
+                            this.logger.debug("Lost connection object");
                         }
                     } else if (this.datatype === 'buffer') {
                         this.send({ payload: data });
@@ -178,21 +179,20 @@ module.exports = function (RED) {
             });
 
             socket.on('close', () => {
-                this.logger.info(`Socket closed`);
+                this.logger.debug(`Socket closed`);
                 if (this.connection) {
                     this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
                     this._retryConnection(this.connection);
                 } else {
-                    this.logger.error("Connection lost");
+                    this.logger.debug("Connection already closed when closing socket");
                 }
             });
 
             socket.on('error', (err) => {
                 if (this.connection) {
-                    this.logger.info(`Error connecting to ${this.connection.host}:${this.connection.port}: ${err.message}`);
-                    this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
+                    this.logger.info(`Socket error for ${this.connection.host}:${this.connection.port}: ${err.message}`);
                     this._destroySocket();
-                    this._retryConnection();
+                    this._retryConnection(err);
                 } else {
                     this.logger.info("Socket error: " + err.message);
                     // connection gone, probably due to close so we bail out
@@ -228,13 +228,13 @@ module.exports = function (RED) {
             this.doDone();
         }
 
-        _retryConnection() {
+        _retryConnection(err) {
             if (this.connection && this.connection.retries < this.maxRetries) {
                 if (!this.connection.retryTimeoutId) {
                     this.connection.retryTimeoutId = setTimeout(() => {
-                        if (this.connection) { // connection might been closed in the meantime
+                        if (this.connection) { // connection might been closed in the meantime 
                             this.connection.retries++;
-                            this.logger.debug(`Retry ${this.connection.retries}/${this.maxRetries} for ${this.connection.host}:${this.connection.port}`);
+                            this.logger.info(`Retry ${this.connection.retries}/${this.maxRetries} for ${this.connection.host}:${this.connection.port}`);
                             this._doConnect();
                         }
                     }, this.retryDelay);
@@ -242,10 +242,11 @@ module.exports = function (RED) {
                     this.logger.debug("Retry already in progress");
                 }
             } else {
-                this.logger.error(`Maximum retries reached for ${this.connection.host}:${this.connection.port}. Giving up.`);
+                const errmsg = `Maximum retries reached for ${this.connection.host}:${this.connection.port}. Giving up. Original error: ${err.message}`;
                 this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${this.connection.host}:${this.connection.port}.` });
                 this._destroySocket();
                 this.connection = null;
+                this.logger.error(errmsg);
             }
         }
 

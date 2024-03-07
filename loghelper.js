@@ -22,7 +22,7 @@ class LogHelper {
         if (this.levels[level] !== undefined && this.currentLevel <= this.levels[level]) {
             switch(level) {
                 case 'error':
-                    this.node.error(message);
+                    this.node.error(`[${level.toUpperCase()}]: ${message}`, {});
                     break;
                 case 'warning':
                 case 'info':

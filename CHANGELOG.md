@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file. This projec
 - Improved help
 
 ### Fixed
-- [#3](https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues/3)
+- Improved fault handling and throwing errors [#3](https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues/3)
 
 ## [1.1.1] - 2024-03-03
 

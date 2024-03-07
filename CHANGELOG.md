@@ -8,7 +8,6 @@ All notable changes to this project will be documented in this file. This projec
 ### Changed
 ### Fixed
 
-
 ## [1.1.2]
 
 ### Added

@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/jorgen-k/node-red-contrib-tcp-client2/issues"
   },
-  "homepage": "https://github.com/jorgen-k/node-red-contrib-tcp-client2#readme"
+  "homepage": "https://github.com/jorgen-k/node-red-contrib-tcp-client2#readme",
+  "devDependencies": {
+    "semantic-release": "^23.0.2"
+  }
 }

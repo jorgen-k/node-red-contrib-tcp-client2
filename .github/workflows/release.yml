@@ -13,10 +13,11 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          node-version: '20' 
       - uses: actions/setup-node@v3
         with:
-          node-version: '20' # Use the node version appropriate for your project
+          node-version: '20' 
           registry-url: 'https://registry.npmjs.org/'
       - run: npm ci
       - run: npx semantic-release
-      - run: npm publish

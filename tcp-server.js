@@ -111,7 +111,12 @@ module.exports = function (RED) {
                     if (this.socketTimeout > 0) {
                         socket.setTimeout(this.socketTimeout);// reset timeout
                     }
-                    let parsedData = data.toString(this.datatype);
+                    let parsedData;
+                    if (this.datatype === 'buffer') {
+                        parsedData = data; // Keep as buffer
+                    } else {
+                        parsedData = data.toString(this.datatype);
+                    }
                     this.logger.debug("Got data :" + parsedData);
                     this.send({payload: parsedData, topic: clientId});
                 });

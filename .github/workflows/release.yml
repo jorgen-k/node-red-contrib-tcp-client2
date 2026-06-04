@@ -10,12 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20' 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20' 
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org/'
       - name: CI
         run: npm ci
@@ -25,6 +23,5 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Notify Node-RED Library
-        if: success() && github.ref == 'refs/heads/master' # Ensure this runs only on successful release and on the master branch
+        if: success() && github.ref == 'refs/heads/master'
         run: curl -X POST https://catalogue.nodered.org/add/node/node-red-contrib-tcp-client2
-

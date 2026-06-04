@@ -89,6 +89,7 @@ module.exports = function (RED) {
                 const clientId = `${socket.remoteAddress}:${socket.remotePort}`;
                 this.logger.info(`Client connected: ${clientId}`);
                 this.clients.set(clientId, socket); // Track this new client
+                this.send({ payload: 'connected', topic: clientId });
                 this.status({fill: "green", shape: "dot", text: `Listening, ${this.clients.size} connections`})
                 if (this.keepAliveTimeout > 0) {
                     socket.setKeepAlive(true, this.keepAliveTimeout);

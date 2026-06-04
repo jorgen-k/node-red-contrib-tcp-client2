@@ -27,7 +27,7 @@ module.exports = function (RED) {
 
     class TcpServerNode {
         constructor(config) {
-            RED.nodes.createNode(this, config);0
+            RED.nodes.createNode(this, config);
             this.logger = new LogHelper(this, config.debug);
             this.clients = new Map(); // To keep track of connected clients
             this.datatype = config.datatype || 'utf8';
@@ -146,6 +146,8 @@ module.exports = function (RED) {
 
             this.server.on('error', (err) => {
                 this.logger.error(`Server error: ${err.message}`);
+                this.server = null;
+                this.status({ fill: "red", shape: "dot", text: "error" });
                 if (done) done(err);
             });
         
@@ -173,6 +175,7 @@ module.exports = function (RED) {
                 }
             } else {
                 this.logger.warning(`Client ${client} not found or topic not provided`);
+                this.done = null;
                 if (done) done(new Error(`Client ${client} not found or topic not provided`));
             }
         }

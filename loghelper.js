@@ -25,9 +25,11 @@ class LogHelper {
                     this.node.error(`[${level.toUpperCase()}]: ${message}`, {});
                     break;
                 case 'warning':
+                    this.node.warn(`[${level.toUpperCase()}]: ${message}`);
+                    break;
                 case 'info':
                 case 'debug':
-                    this.node.warn(`[${level.toUpperCase()}]: ${message}`);
+                    this.node.log(`[${level.toUpperCase()}]: ${message}`);
                     break;
                 default:
                     // Default action or log for unhandled levels

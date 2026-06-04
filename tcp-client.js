@@ -132,22 +132,29 @@ module.exports = function (RED) {
                         if (this.connection) {
                             this.connection.buffer += data.toString(this.datatype);
 
-                            // Handle delimited strings for 'utf8' and 'base64'
-                            let parts = this.connection.buffer.split(this.delimiter);
-                            for (let i = 0; i < parts.length - 1; i++) {
-                                let msgPayload = parts[i];
-                                /* TODO make this a configurable option
-                                if (this.datatype === 'base64') {
-                                    // For base64 optionaly convert the payload back to a Buffer
-                                    msgPayload = Buffer.from(parts[i], 'base64');
-                                }*/
-                                let msg = { payload: msgPayload };
-                                this.send(msg); // Send each complete message
-                                this.logger.debug(`Sent ${this.datatype} data: ${msg.payload}`);
-                            }
+                            if (this.delimiter === '') {
+                                // No delimiter configured — emit the whole accumulated buffer immediately
+                                this.send({ payload: this.connection.buffer });
+                                this.logger.debug(`Sent ${this.datatype} data: ${this.connection.buffer}`);
+                                this.connection.buffer = '';
+                            } else {
+                                // Handle delimited strings for 'utf8' and 'base64'
+                                let parts = this.connection.buffer.split(this.delimiter);
+                                for (let i = 0; i < parts.length - 1; i++) {
+                                    let msgPayload = parts[i];
+                                    /* TODO make this a configurable option
+                                    if (this.datatype === 'base64') {
+                                        // For base64 optionaly convert the payload back to a Buffer
+                                        msgPayload = Buffer.from(parts[i], 'base64');
+                                    }*/
+                                    let msg = { payload: msgPayload };
+                                    this.send(msg); // Send each complete message
+                                    this.logger.debug(`Sent ${this.datatype} data: ${msg.payload}`);
+                                }
 
-                            // Keep the last part (incomplete message) in the buffer for the next 'data' event
-                            this.connection.buffer = parts[parts.length - 1];
+                                // Keep the last part (incomplete message) in the buffer for the next 'data' event
+                                this.connection.buffer = parts[parts.length - 1];
+                            }
                         } else {
                             // this can happen if streaming and closing, the socket might get data after the close
                             this.logger.debug("Lost connection object");
@@ -182,7 +189,7 @@ module.exports = function (RED) {
                 this.logger.debug(`Socket closed`);
                 if (this.connection) {
                     this.logger.debug(`Retrying connection to ${this.connection.host}:${this.connection.port}`);
-                    this._retryConnection(this.connection);
+                    this._retryConnection(new Error('Connection closed'));
                 } else {
                     this.logger.debug("Connection already closed when closing socket");
                 }
@@ -209,7 +216,7 @@ module.exports = function (RED) {
                     this.logger.debug("Object converted to string: " + data);
                 }
                 this.logger.debug("Writing " + data);
-                this.connection.socket.write(data, this.datatype, done);
+                this.connection.socket.write(data, this.datatype);
             } else {
                 this.logger.warning(`No connection available. Attempting to send data failed.`);
             }
@@ -241,7 +248,7 @@ module.exports = function (RED) {
                 } else {
                     this.logger.debug("Retry already in progress");
                 }
-            } else {
+            } else if (this.connection) {
                 const errmsg = `Maximum retries reached for ${this.connection.host}:${this.connection.port}. Giving up. Original error: ${err.message}`;
                 this.status({ fill: "red", shape: "ring", text: `Maximum retries reached for ${this.connection.host}:${this.connection.port}.` });
                 this._destroySocket();
